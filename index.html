@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Princess Portal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background: url('https://static.animecorner.me/2023/07/rezero-s3-scaled.jpg') no-repeat center center fixed;
+      background-size: cover;
+      backdrop-filter: blur(6px);
+      color: white;
+      text-align: center;
+    }
+    .card {
+      background: rgba(0,0,0,0.7);
+      margin: 20px auto;
+      padding: 20px;
+      max-width: 600px;
+      border-radius: 20px;
+    }
+    button {
+      font-size: 20px;
+      padding: 10px 20px;
+      margin: 10px;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+    input {
+      font-size: 18px;
+      padding: 10px;
+      margin: 10px;
+      width: 80%;
+    }
+    img {
+      max-width: 300px;
+      border-radius: 20px;
+    }
+    canvas {
+      background: #aaa;
+      border-radius: 10px;
+      touch-action: none;
+    }
+    .sparkle {
+      position: fixed;
+      pointer-events: none;
+      animation: fade 1s forwards;
+    }
+    @keyframes fade {
+      0% { opacity: 1; transform: scale(1); }
+      100% { opacity: 0; transform: scale(2); }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+<script>
+const { useState, useEffect, useRef } = React;
+
+function App() {
+  const [stage, setStage] = useState("login");
+  const [user, setUser] = useState("");
+  const [pass, setPass] = useState("");
+
+  const [quizIndex, setQuizIndex] = useState(0);
+  const [quizAnswers, setQuizAnswers] = useState({});
+
+  const [meQuizIndex, setMeQuizIndex] = useState(0);
+  const [meAnswers, setMeAnswers] = useState({});
+
+  const canvasRef = useRef(null);
+  const [board, setBoard] = useState(Array(9).fill(""));
+  const [turn, setTurn] = useState("X");
+  const [winner, setWinner] = useState("");
+
+  const braceletURL = "https://i.pinimg.com/originals/9a/19/21/9a192164d7f0f2dea3b4b182c221d97d.jpg";
+
+  const quiz = [
+    { q: "Who is Subaru in love with?", o: ["Rem","Emilia","Beatrice","Ram"], a: 1 },
+    { q: "What power does Subaru have?", o: ["Magic","Rewind","Flight","Time stop"], a: 1 },
+    { q: "Who is the blue-haired maid?", o: ["Ram","Rem","Emilia","Felt"], a: 1 },
+    { q: "Which world is Subaru summoned to?", o: ["Modern","Fantasy","Sci-fi","Historical"], a: 1 },
+    { q: "Who is the spirit contracted by Emilia?", o: ["Puck","Ram","Roswaal","Otto"], a: 0 },
+    { q: "What is Roswaal?", o: ["Knight","Clown Mage","King","Demon"], a: 1 },
+    { q: "Who kills Subaru most times?", o: ["Elsa","Rem","Ram","Satella"], a: 0 },
+    { q: "What color is Rem’s hair?", o: ["Pink","Blue","White","Red"], a: 1 },
+    { q: "Who is the Witch of Envy?", o: ["Echidna","Satella","Minerva","Carmilla"], a: 1 },
+    { q: "What animal is Puck?", o: ["Dog","Cat","Dragon","Bird"], a: 1 }
+  ];
+
+  const meQuiz = [
+    { q: "What's my spelling?", o: ["SHELLY","SHELY","SHAILLY","SHAILY"], a: 2 },
+    { q: "What's my fav. fast-food?", o: ["pizza","momos","golgappe","burger"], a: 2 },
+    { q: "What's my fav. color?", o: ["Blue","Green","Pink","Black"], a: 0 },
+    { q: "What's my fav. hobbie?", o: ["Kalesh","gossips","gussa hona","All of these"], a: 3 }
+  ];
+
+  function login() {
+    if (user === "Shub@princess" && pass === "Fast-text") setStage("menu");
+    else alert("Wrong credentials");
+  }
+
+  function sparkle(x,y) {
+    const s = document.createElement("div");
+    s.className = "sparkle";
+    s.style.left = x + "px";
+    s.style.top = y + "px";
+    s.style.width = "15px";
+    s.style.height = "15px";
+    s.style.background = "gold";
+    s.style.borderRadius = "50%";
+    document.body.appendChild(s);
+    setTimeout(()=>s.remove(),1000);
+  }
+
+  function answerQuiz(i) {
+    setQuizAnswers({...quizAnswers, [quizIndex]: i});
+    if (quizIndex + 1 >= quiz.length) setStage("meQuiz");
+    else setQuizIndex(quizIndex + 1);
+  }
+
+  function answerMeQuiz(i) {
+    setMeAnswers({...meAnswers, [meQuizIndex]: i});
+    if (meQuizIndex + 1 >= meQuiz.length) setStage("games");
+    else setMeQuizIndex(meQuizIndex + 1);
+  }
+
+  useEffect(()=> {
+    const canvas = canvasRef.current;
+    if(!canvas) return;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#aaa";
+    ctx.fillRect(0,0,300,200);
+
+    function scratch(e){
+      const rect = canvas.getBoundingClientRect();
+      const x = (e.touches?e.touches[0].clientX:e.clientX) - rect.left;
+      const y = (e.touches?e.touches[0].clientY:e.clientY) - rect.top;
+      ctx.globalCompositeOperation = "destination-out";
+      ctx.beginPath();
+      ctx.arc(x,y,15,0,Math.PI*2);
+      ctx.fill();
+    }
+    canvas.addEventListener("mousemove", scratch);
+    canvas.addEventListener("touchmove", scratch);
+
+    return ()=> {
+      canvas.removeEventListener("mousemove", scratch);
+      canvas.removeEventListener("touchmove", scratch);
+    };
+  },[stage]);
+
+  function checkWin(b) {
+    const w = [
+      [0,1,2],[3,4,5],[6,7,8],
+      [0,3,6],[1,4,7],[2,5,8],
+      [0,4,8],[2,4,6]
+    ];
+    for (let c of w) {
+      if (b[c[0]] && b[c[0]]===b[c[1]] && b[c[1]]===b[c[2]]) return b[c[0]];
+    }
+    return "";
+  }
+
+  function move(pos) {
+    if (board[pos] || winner) return;
+    const nb = [...board];
+    nb[pos] = "X";
+    const w = checkWin(nb);
+    if (w) {
+      setBoard(nb);
+      setWinner(w);
+      return;
+    }
+    let aiMove = nb.findIndex(v=>v==="");
+    if (aiMove !== -1) nb[aiMove] = "O";
+    const w2 = checkWin(nb);
+    if (w2) setWinner(w2);
+    setBoard(nb);
+  }
+
+  function results() {
+    let out = "Correct Answers:\n\n";
+    meQuiz.forEach((q,i)=>{
+      out += q.q + " → " + q.o[q.a] + "\n";
+    });
+    return out;
+  }
+
+  if(stage==="login") return (
+    <div className="card">
+      <h1>Princess Portal Login</h1>
+      <input placeholder="Username" onChange={e=>setUser(e.target.value)} />
+      <input type="password" placeholder="Password" onChange={e=>setPass(e.target.value)} />
+      <button onClick={login}>Enter</button>
+    </div>
+  );
+
+  if(stage==="menu") return (
+    <div className="card">
+      <h1>Magical Portal</h1>
+      <button onClick={()=>setStage("quiz")}>Start Quiz</button>
+    </div>
+  );
+
+  if(stage==="quiz") {
+    const q=quiz[quizIndex];
+    return (
+      <div className="card" onClick={e=>sparkle(e.clientX,e.clientY)}>
+        <h2>{q.q}</h2>
+        {q.o.map((op,i)=>(
+          <button key={i} onClick={()=>answerQuiz(i)}>{op}</button>
+        ))}
+      </div>
+    );
+  }
+
+  if(stage==="meQuiz") {
+    const q=meQuiz[meQuizIndex];
+    return (
+      <div className="card">
+        <h2>{q.q}</h2>
+        {q.o.map((op,i)=>(
+          <button key={i} onClick={()=>answerMeQuiz(i)}>{op}</button>
+        ))}
+      </div>
+    );
+  }
+
+  if(stage==="games") return (
+    <div className="card">
+      <h2>Scratch the Bracelet</h2>
+      <img src="{braceletURL}" />
+      <canvas ref={canvasRef} width="300" height="200"></canvas>
+      <h2>Tic Tac Toe vs AI</h2>
+      <div style={{display:"grid", gridTemplateColumns:"repeat(3,100px)", gap:"5px", justifyContent:"center"}}>
+        {board.map((v,i)=>(
+          <button key={i} style={{width:"100px",height:"100px"}} onClick={()=>move(i)}>{v}</button>
+        ))}
+      </div>
+      {winner && <h3>Winner: {winner}</h3>}
+      <button onClick={()=>setStage("certificate")}>Get Certificate</button>
+    </div>
+  );
+
+  if(stage==="certificate") return (
+    <div className="card">
+      <h1>🎉 Magic Certificate 🎉</h1>
+      <pre>{results()}</pre>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
